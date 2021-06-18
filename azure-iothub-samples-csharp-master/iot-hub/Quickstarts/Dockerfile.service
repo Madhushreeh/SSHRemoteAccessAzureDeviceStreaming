@@ -1,0 +1,23 @@
+FROM mcr.microsoft.com/dotnet/aspnet:5.0 AS base
+WORKDIR /app
+
+FROM mcr.microsoft.com/dotnet/sdk:5.0 AS build
+WORKDIR /src
+COPY ["device-streams-proxy/service/ServiceLocalProxyStreamingSample.csproj", "device-streams-proxy/service/"]
+RUN dotnet restore "device-streams-proxy/service/ServiceLocalProxyStreamingSample.csproj"
+COPY . .
+RUN cd /src/device-streams-proxy/service
+RUN dotnet build "device-streams-proxy/service/ServiceLocalProxyStreamingSample.csproj" -c Release -o /app/build
+WORKDIR "/src/device-streams-proxy/service"
+
+FROM build AS publish
+RUN dotnet publish "ServiceLocalProxyStreamingSample.csproj" -c Release -o /app/publish
+
+FROM base AS final
+WORKDIR /app
+COPY --from=publish /app/publish .
+#CMD [ "dotnet", "run", "HostName=devicestream.azure-devices.net;SharedAccessKeyName=service;SharedAccessKey=jcJGv/qTDXqa57b0IN8Duiz+MIBU9hekytHZcJyzDd0=", "Viot2",  "2222" ]
+#ENTRYPOINT ["dotnet", "ServiceLocalProxyStreamingSample.dll", "HostName=devicestream.azure-devices.net;SharedAccessKeyName=service;SharedAccessKey=jcJGv/qTDXqa57b0IN8Duiz+MIBU9hekytHZcJyzDd0=", "Viot2",  "2222" ]
+#CMD [ "dotnet", "run", "IoTHubServiceConnectionString", "DeviceId", "LocalPortNumber" ]
+
+ENTRYPOINT [ "dotnet", "ServiceLocalProxyStreamingSample.dll", "IOTHUB_CONNECTION_STRING", "DEVICE_ID", "LOCAL_PORT" ]
